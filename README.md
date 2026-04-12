@@ -12,7 +12,6 @@
 * 💬 Chat interface with memory
 * 🎤 Voice input (speech-to-text)
 * 🌙 Modern dark UI with animations
-* 🔐 Login & Signup system
 * ⚡ Works offline using Ollama (No API required)
 
 ---
