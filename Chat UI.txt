@@ -1,0 +1,8 @@
+if "chat" not in st.session_state:
+    st.session_state.chat = []
+
+st.session_state.chat.append(("User", query))
+st.session_state.chat.append(("Bot", response))
+
+for role, msg in st.session_state.chat:
+    st.write(f"**{role}:** {msg}")
