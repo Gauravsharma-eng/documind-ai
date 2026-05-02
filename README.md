@@ -71,11 +71,8 @@ streamlit run app.py
 
 ---
 
-## 📸 Screenshots
-
-*Add your project screenshots here*
-
----
+## 🌐 Live on Streamlit Cloud
+🔗 Link ke liye: 🔗 Live Demo: [https://smart-pdf-gaurav.streamlit.app/](https://smart-pdf-gaurav.streamlit.app/)
 
 ## 🚀 Future Improvements
 
