@@ -35,7 +35,7 @@ if "db" not in st.session_state:
 
 # ---------------- UI LAYOUT ----------------
 st.markdown('<h1 class="title">🚀 DocuMind AI</h1>', unsafe_allow_html=True)
-st.caption("<p style='text-align: center;'>Your Intelligent PDF Assistant powered by Llama 3</p>", unsafe_allow_html=True)
+st.caption("<p style='text-align: center;'>Your Intelligent PDF Assistant powered by Llama 3.1</p>", unsafe_allow_html=True)
 
 uploaded_file = st.file_uploader("📂 Upload your PDF document", type="pdf")
 
@@ -81,9 +81,9 @@ if query:
     """
     
     try:
-        # Call Groq Llama 3 API (Cloud based)
+        # Call Groq Llama 3.1 API (Cloud based - Updated Model Name)
         completion = client.chat.completions.create(
-            model="llama3-8b-8192",
+            model="llama-3.1-8b-instant", 
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": query}
