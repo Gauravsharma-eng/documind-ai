@@ -13,8 +13,8 @@ st.set_page_config(page_title="🤖 DocuMind AI", layout="wide", page_icon="🚀
 st.markdown("""
     <style>
     .stApp { background:#0e1117; color: white; }
-    .title-text { font-size:50px; color:#00f7ff; text-shadow:0 0 20px #00f7ff; font-weight: bold; margin-bottom: 0px; }
-    .subtitle-text { color: #b0b0b0; font-size: 18px; margin-top: -10px; }
+    .title-text { font-size:50px; color:#00f7ff; text-shadow:0 0 20px #00f7ff; font-weight: bold; margin-bottom: 0px; text-align: center; }
+    .subtitle-text { color: #b0b0b0; font-size: 18px; margin-top: -10px; text-align: center; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -30,20 +30,20 @@ if "chat" not in st.session_state:
 if "db" not in st.session_state:
     st.session_state.db = None
 
-# ---------------- 🚀 UI LAYOUT (As per your Screenshot) ----------------
+# ---------------- 🚀 MAIN UI LAYOUT ----------------
 
-# Upar ka Header section jahan images aur title hai
-main_col1, main_col2 = st.columns([1, 1.2])
+# Center alignment ke liye columns
+col1, col2, col3 = st.columns([1, 2, 1])
 
-with main_col1:
-    # Aapki 'project images.jpeg' yahan mascot ka kaam karegi
+with col2:
+    # Sirf 'project images.jpeg' rakhi hai (aapka mascot)
     st.image("project images.jpeg", use_container_width=True)
-
-with main_col2:
     st.markdown('<p class="title-text">DocuMind AI</p>', unsafe_allow_html=True)
     st.markdown('<p class="subtitle-text">Your Intelligent PDF Assistant</p>', unsafe_allow_html=True)
     
-    # File Uploader section
+    st.markdown("---")
+    
+    # File Uploader
     uploaded_file = st.file_uploader("📂 Upload PDF", type="pdf")
     
     if uploaded_file:
@@ -60,9 +60,7 @@ with main_col2:
                 st.session_state.db = FAISS.from_documents(chunks, embeddings)
                 st.success("✅ PDF Ready!")
 
-st.markdown("---")
-
-# 💬 Chat Interface
+# 💬 Chat Interface (Niche display hoga)
 query = st.chat_input("💬 Ask your question...")
 
 if query:
@@ -94,10 +92,12 @@ for role, msg in st.session_state.chat:
     else:
         st.chat_message("assistant", avatar="🤖").write(msg)
 
-# Sidebar mein extra images dikhane ke liye
+# Sidebar se images hata di hain, sirf bio rakha hai
 with st.sidebar:
-    st.title("📸 Project Previews")
-    st.image("project images1.jpeg", caption="Chat Interface View", use_container_width=True)
-    st.image("project images2.jpeg", caption="Real-time Response", use_container_width=True)
-    st.markdown("---")
-    st.write("Developed by **Gaurav**")
+    st.title("🛠️ Project Info")
+    st.info("Developed by **Gaurav** 🧑‍💻")
+    st.write("📍 Based in Gwalior")
+    st.write("🚀 Tech: Llama 3.1 + FAISS")
+    if st.button("🗑️ Clear Chat"):
+        st.session_state.chat = []
+        st.rerun()
