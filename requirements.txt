@@ -1,11 +1,7 @@
 streamlit
-python-dotenv
 langchain
 langchain-community
-langchain-huggingface
 faiss-cpu
-pypdf
-sentence-transformers
-SpeechRecognition
-pyaudio
-requests
+PyPDF2
+python-dotenv
+langchain-huggingface
