@@ -1,0 +1,24 @@
+# 🚀 DocuMind AI - Intelligent PDF Chatbot
+
+An advanced PDF-based AI Assistant built using **Llama 3.1**, **LangChain**, and **RAG (Retrieval-Augmented Generation)** architecture.
+
+### 🔗 [Live Demo Link](https://smart-pdf-gaurav.streamlit.app/)
+
+## 🌟 Key Features
+- **Intelligent RAG Pipeline:** Uses FAISS for efficient vector similarity search.
+- **Llama 3.1 Integration:** Powered by Groq for lightning-fast responses.
+- **Secure Architecture:** Implements Streamlit Secrets for API key protection.
+- **Smart Context Handling:** Answers queries specifically based on uploaded PDF content.
+
+## 🛠️ Tech Stack
+- **Framework:** Streamlit
+- **LLM Orchestration:** LangChain
+- **Inference Engine:** Groq (Llama 3.1-8B)
+- **Vector Database:** FAISS
+- **Embeddings:** HuggingFace (all-MiniLM-L6-v2)
+
+## 📁 Installation & Setup
+1. Clone the repository.
+2. Install dependencies: `pip install -r requirements.txt`
+3. Add your `GROQ_API_KEY` to `.streamlit/secrets.toml`.
+4. Run: `streamlit run app.py`
