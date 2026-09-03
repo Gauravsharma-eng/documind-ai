@@ -35,7 +35,7 @@ if "db" not in st.session_state:
 col1, col2, col3 = st.columns([1, 2, 1])
 
 with col2:
-    st.image("project images.jpeg", width='stretch')
+    st.image("project images.jpeg", use_container_width=True)
     st.markdown('<p class="title-text">DocuMind AI</p>', unsafe_allow_html=True)
     st.markdown('<p class="subtitle-text">Your Intelligent PDF Assistant</p>', unsafe_allow_html=True)
     
