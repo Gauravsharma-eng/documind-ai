@@ -32,12 +32,10 @@ if "db" not in st.session_state:
 
 # ---------------- 🚀 MAIN UI LAYOUT ----------------
 
-# Center alignment ke liye columns
 col1, col2, col3 = st.columns([1, 2, 1])
 
 with col2:
-    # Sirf 'project images.jpeg' rakhi hai (aapka mascot)
-    st.image("project images.jpeg", use_container_width=True)
+    st.image("project images.jpeg", width='stretch')
     st.markdown('<p class="title-text">DocuMind AI</p>', unsafe_allow_html=True)
     st.markdown('<p class="subtitle-text">Your Intelligent PDF Assistant</p>', unsafe_allow_html=True)
     
@@ -60,7 +58,7 @@ with col2:
                 st.session_state.db = FAISS.from_documents(chunks, embeddings)
                 st.success("✅ PDF Ready!")
 
-# 💬 Chat Interface (Niche display hoga)
+# 💬 Chat Interface
 query = st.chat_input("💬 Ask your question...")
 
 if query:
@@ -92,7 +90,7 @@ for role, msg in st.session_state.chat:
     else:
         st.chat_message("assistant", avatar="🤖").write(msg)
 
-# Sidebar se images hata di hain, sirf bio rakha hai
+# Sidebar
 with st.sidebar:
     st.title("🛠️ Project Info")
     st.info("Developed by **Gaurav** 🧑‍💻")
