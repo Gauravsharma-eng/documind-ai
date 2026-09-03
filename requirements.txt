@@ -1,4 +1,5 @@
 streamlit
+tenacity
 groq
 langchain
 langchain-community
