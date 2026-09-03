@@ -3,7 +3,7 @@ import time
 from groq import Groq  # Native Groq client
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.vectorstores import FAISS
+from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 
 # ---------------- ⚙️ CONFIG ----------------
@@ -29,6 +29,8 @@ if "chat" not in st.session_state:
     st.session_state.chat = []
 if "db" not in st.session_state:
     st.session_state.db = None
+if "summary" not in st.session_state:
+    st.session_state.summary = ""
 
 # ---------------- 🚀 MAIN UI LAYOUT ----------------
 
@@ -49,35 +51,74 @@ with col2:
             f.write(uploaded_file.getbuffer())
         
         if st.session_state.db is None:
-            with st.spinner("🔍 Indexing PDF..."):
+            with st.spinner("🔍 Indexing PDF & Generating Summary..."):
                 loader = PyPDFLoader("temp.pdf")
                 docs = loader.load()
                 splitter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=100)
                 chunks = splitter.split_documents(docs)
                 embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-                st.session_state.db = FAISS.from_documents(chunks, embeddings)
-                st.success("✅ PDF Ready!")
+                
+                # 1. Persistent Vector DB (Chroma)
+                st.session_state.db = Chroma.from_documents(
+                    chunks, embeddings, persist_directory="./chroma_db"
+                )
+                
+                # 2. Auto-Summary Generation
+                sample_text = "\n".join([doc.page_content for doc in chunks[:3]])
+                sum_completion = client.chat.completions.create(
+                    model="openai/gpt-oss-20b",
+                    messages=[
+                        {"role": "system", "content": "Provide a concise 3-bullet executive summary of this document excerpt."},
+                        {"role": "user", "content": sample_text}
+                    ],
+                    temperature=0.3
+                )
+                st.session_state.summary = sum_completion.choices[0].message.content
+                st.success("✅ PDF Ready & Summarized!")
 
-# 💬 Chat Interface
+    # Display Auto-Summary in an expander
+    if st.session_state.summary:
+        with st.expander("📌 Document Executive Summary", expanded=False):
+            st.write(st.session_state.summary)
+
+# 💬 Chat Interface with Memory & Citations
 query = st.chat_input("💬 Ask your question...")
 
 if query:
     st.session_state.chat.append(("user", query))
     
     context = ""
+    citations = set()
     if st.session_state.db:
-        docs = st.session_state.db.similarity_search(query, k=3)
-        context = "\n".join([doc.page_content for doc in docs])
+        results = st.session_state.db.similarity_search_with_score(query, k=3)
+        context_parts = []
+        for doc, score in results:
+            page_num = doc.metadata.get("page", 0) + 1
+            citations.add(page_num)
+            context_parts.append(f"[Page {page_num}]: {doc.page_content}")
+        context = "\n".join(context_parts)
     
-    system_prompt = f"Answer based ONLY on context: \n{context}"
+    system_prompt = f"Answer based ONLY on the provided context. Be precise and helpful.\n\nContext:\n{context}"
+    
+    # 3. Conversational Memory (Passing past messages into Groq API)
+    messages = [{"role": "system", "content": system_prompt}]
+    for role, msg in st.session_state.chat[:-1]:
+        api_role = "user" if role == "user" else "assistant"
+        messages.append({"role": api_role, "content": msg})
+    messages.append({"role": "user", "content": query})
     
     try:
         completion = client.chat.completions.create(
             model="openai/gpt-oss-20b", 
-            messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": query}],
+            messages=messages,
             temperature=0.5,
         )
         answer = completion.choices[0].message.content
+        
+        # 4. Source Page Citations Appended
+        if citations:
+            answer += f"\n\n*📚 Source Pages: {', '.join(map(str, sorted(citations)))}*"
+            
     except Exception as e:
         answer = f"⚠️ Error: {str(e)}"
     
@@ -95,7 +136,9 @@ with st.sidebar:
     st.title("🛠️ Project Info")
     st.info("Developed by **Gaurav** 🧑‍💻")
     st.write("📍 Based in Gwalior")
-    st.write("🚀 Tech: Llama 3.3 + FAISS")
+    st.write("🚀 Tech: ChromaDB + Groq")
     if st.button("🗑️ Clear Chat"):
         st.session_state.chat = []
+        st.session_state.summary = ""
+        st.session_state.db = None
         st.rerun()
