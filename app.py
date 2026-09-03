@@ -18,7 +18,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# Groq Client Setup via OpenAI compatibility
+# Groq Free API Client Setup via OpenAI compatibility
 try:
     client = OpenAI(
         api_key=st.secrets["GROQ_API_KEY"],
