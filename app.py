@@ -1,5 +1,6 @@
 import streamlit as st
 import time
+from tenacity import retry, stop_after_attempt, wait_exponential
 from groq import Groq  # Native Groq client
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -23,6 +24,26 @@ try:
     client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 except Exception as e:
     st.error("❌ Error: Please add GROQ_API_KEY in Streamlit Secrets!")
+
+# ---------------- 🛡️ RETRY WRAPPERS FOR API CALLS ----------------
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=6))
+def safe_chat_completion(client, messages, model="openai/gpt-oss-20b", temperature=0.5):
+    return client.chat.completions.create(
+        model=model,
+        messages=messages,
+        temperature=temperature,
+    )
+
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=6))
+def safe_summary_completion(client, sample_text):
+    return client.chat.completions.create(
+        model="openai/gpt-oss-20b",
+        messages=[
+            {"role": "system", "content": "Provide a concise 3-bullet executive summary of this document excerpt."},
+            {"role": "user", "content": sample_text}
+        ],
+        temperature=0.3
+    )
 
 # ---------------- 🧠 SESSION STATE ----------------
 if "chat" not in st.session_state:
@@ -52,36 +73,27 @@ with col2:
         
         if st.session_state.db is None:
             with st.spinner("🔍 Indexing PDF & Generating Summary..."):
-                loader = PyPDFLoader("temp.pdf")
-                docs = loader.load()
-                splitter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=100)
-                chunks = splitter.split_documents(docs)
-                embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-                
-                # 1. Persistent Vector DB (Chroma)
-                st.session_state.db = Chroma.from_documents(
-                    chunks, embeddings, persist_directory="./chroma_db"
-                )
-                
-                # 2. Auto-Summary Generation
-                sample_text = "\n".join([doc.page_content for doc in chunks[:3]])
-                sum_completion = client.chat.completions.create(
-                    model="openai/gpt-oss-20b",
-                    messages=[
-                        {"role": "system", "content": "Provide a concise 3-bullet executive summary of this document excerpt."},
-                        {"role": "user", "content": sample_text}
-                    ],
-                    temperature=0.3
-                )
-                st.session_state.summary = sum_completion.choices[0].message.content
-                st.success("✅ PDF Ready & Summarized!")
+                try:
+                    loader = PyPDFLoader("temp.pdf")
+                    docs = loader.load()
+                    splitter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=100)
+                    chunks = splitter.split_documents(docs)
+                    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+                    st.session_state.db = Chroma.from_documents(chunks, embeddings)
+                    
+                    # Auto-Summary with Retry Protection
+                    sample_text = "\n".join([doc.page_content for doc in chunks[:3]])
+                    sum_completion = safe_summary_completion(client, sample_text)
+                    st.session_state.summary = sum_completion.choices[0].message.content
+                    st.success("✅ PDF Ready & Summarized!")
+                except Exception as e:
+                    st.error(f"⚠️ Indexing Error: {str(e)}")
 
-    # Display Auto-Summary in an expander
     if st.session_state.summary:
         with st.expander("📌 Document Executive Summary", expanded=False):
             st.write(st.session_state.summary)
 
-# 💬 Chat Interface with Memory & Citations
+# 💬 Chat Interface with Memory, Citations & Error Guardrails
 query = st.chat_input("💬 Ask your question...")
 
 if query:
@@ -100,7 +112,6 @@ if query:
     
     system_prompt = f"Answer based ONLY on the provided context. Be precise and helpful.\n\nContext:\n{context}"
     
-    # 3. Conversational Memory (Passing past messages into Groq API)
     messages = [{"role": "system", "content": system_prompt}]
     for role, msg in st.session_state.chat[:-1]:
         api_role = "user" if role == "user" else "assistant"
@@ -108,26 +119,22 @@ if query:
     messages.append({"role": "user", "content": query})
     
     try:
-        completion = client.chat.completions.create(
-            model="openai/gpt-oss-20b", 
-            messages=messages,
-            temperature=0.5,
-        )
+        # Protected API Call with automatic retries
+        completion = safe_chat_completion(client, messages)
         answer = completion.choices[0].message.content
         
-        # 4. Source Page Citations Appended
         if citations:
             answer += f"\n\n*📚 Source Pages: {', '.join(map(str, sorted(citations)))}*"
             
     except Exception as e:
-        answer = f"⚠️ Error: {str(e)}"
+        answer = f"⚠️ Connection Error: Unable to fetch response after multiple attempts. Please try again later."
     
     st.session_state.chat.append(("bot", answer))
 
 # 📜 Display Chat History
 for role, msg in st.session_state.chat:
     if role == "user":
-        st.chat_message("user", avatar="🧑‍💻").write(msg)
+        st.chat_memory_msg = st.chat_message("user", avatar="🧑‍💻").write(msg)
     else:
         st.chat_message("assistant", avatar="🤖").write(msg)
 
@@ -136,7 +143,7 @@ with st.sidebar:
     st.title("🛠️ Project Info")
     st.info("Developed by **Gaurav** 🧑‍💻")
     st.write("📍 Based in Gwalior")
-    st.write("🚀 Tech: ChromaDB + Groq")
+    st.write("🚀 Tech: ChromaDB + Groq + Tenacity")
     if st.button("🗑️ Clear Chat"):
         st.session_state.chat = []
         st.session_state.summary = ""
