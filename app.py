@@ -1,6 +1,6 @@
 import streamlit as st
 import time
-from openai import OpenAI
+from groq import Groq  # Native Groq client
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
@@ -18,12 +18,9 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# Groq Free API Client Setup via OpenAI compatibility
+# Native Groq Client Setup
 try:
-    client = OpenAI(
-        api_key=st.secrets["GROQ_API_KEY"],
-        base_url="https://api.groq.com/openai/v1"
-    )
+    client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 except Exception as e:
     st.error("❌ Error: Please add GROQ_API_KEY in Streamlit Secrets!")
 
@@ -76,7 +73,7 @@ if query:
     
     try:
         completion = client.chat.completions.create(
-            model="llama-3.1-8b-instant", 
+            model="llama-3.3-70b-versatile", 
             messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": query}],
             temperature=0.5,
         )
