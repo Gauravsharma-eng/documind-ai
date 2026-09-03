@@ -73,7 +73,7 @@ if query:
     
     try:
         completion = client.chat.completions.create(
-            model="llama-3.1-8b-instant", 
+            model="llama-3.2-3b-preview", 
             messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": query}],
             temperature=0.5,
         )
